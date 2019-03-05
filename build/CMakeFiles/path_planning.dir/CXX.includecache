@@ -772,27 +772,11 @@ lapacke_mangling.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
 
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/fsm.h
-uWS/uWS.h
--
-fstream
--
-iostream
--
-string
--
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/cost.h
 vector
 -
-Eigen-3.3/Eigen/Core
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/Core
-Eigen-3.3/Eigen/QR
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/QR
 helpers.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/helpers.h
-json.hpp
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
-spline.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/helpers.h
 math.h
@@ -879,8 +863,10 @@ json.hpp
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
 spline.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
-fsm.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/fsm.h
+math.h
+-
+cost.h
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/cost.h
 trajectory_generate.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/trajectory_generate.h
 
@@ -915,6 +901,18 @@ json.hpp
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
 spline.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
+vehicle.h
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
+cost.h
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/cost.h
+
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
+map
+-
+string
+-
+vector
+-
 
 /usr/local/include/uWS/Extensions.h
 string

@@ -8,7 +8,11 @@
 #include "helpers.h"
 #include "json.hpp"
 #include "spline.h"
-#include "fsm.h" //Finite State Machines for Behavior Planning
+#include <math.h>
+//#include <limits.h>
+#include "cost.h"
+//#include "vehicle.h"
+// #include "fsm.h" //Finite State Machines for Behavior Planning
 #include "trajectory_generate.h" //Hide the trajectory generate code in a head file
 
 // for convenience
@@ -18,7 +22,7 @@ using std::vector;
 
 int main() {
   uWS::Hub h;
-
+  std::cout << "DEBUG";
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
   vector<double> map_waypoints_y;
@@ -54,15 +58,11 @@ int main() {
   }
 
   
-  // Set up two variables as the project Q&A, very convinient
-  int lane = 1;
+  //string status = "keep true";
+  string state = "KL";
 
-  double ref_vel = 0.0; //mph
-
-  string status = "keep true";
-
-  h.onMessage([&ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy, &lane, &status]
+  h.onMessage([&state, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
+               &map_waypoints_dx,&map_waypoints_dy]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -104,79 +104,24 @@ int main() {
 
           json msgJson;
 
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
           /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          vector<double> ptsx;
-          vector<double> ptsy;
 
-          int prev_size = previous_path_x.size(); //Set up a variable according to the Q&A
-          double ref_yaw = deg2rad(car_yaw);
-          double ref_x = car_x;
-          double ref_y = car_y;
+          //create our vehicle
 
-          if(prev_size > 0)
-          {
-            car_s = end_path_s;
-          }
-
-          vector<vector<double>> alt_sensor_fusion;
-
-          for(int i = 0; i < sensor_fusion.size(); i++)
-          {
-            alt_sensor_fusion.push_back(sensor_fusion[i]);
-          }
-
-          status = fsm(lane, alt_sensor_fusion, car_s, car_d, prev_size);
-/*
-          bool too_close = false;
-
-          for(int i = 0; i < sensor_fusion.size(); i++)
-          {
-            float d = sensor_fusion[i][6];
-            if(d < (2+4*lane+2) && d > (2+4*lane-2))
-            {
-              double vx = sensor_fusion[i][3];
-              double vy = sensor_fusion[i][4];
-              double check_speed = sqrt(vx*vx+vy*vy);
-              double check_car_s = sensor_fusion[i][5];
-
-              check_car_s+=((double)prev_size*.02*check_speed);
-
-              if((check_car_s > car_s) && ((check_car_s-car_s) < 30))
-              {
-                //ref_vel = 29.5;
-                too_close = true;
-                lane = fsm(lane, sensor_fusion, car_s, car_d, ref_vel, );
-              }
-            }
-          }
-
-          if(too_close)
-          {
-            ref_vel -= .224;
-          }
-          else if(ref_vel < 49.5)
-          {
-            ref_vel += .224;
-          }
-*/
-          vector<vector<double>> traj;
-          vector<vector<double>> virtual_traj;
-          vector<double> virtual_x;
-          vector<double> virtual_y;
-          vector<double> virtual_sd;
-          double virtual_s;
-          double virtual_d;
-          //double virtual_theta;
-          string virtual_status;
-          bool danger = false;
-          int virtual_lane;
-
+          
+          
+          int lane = int(floor(car_d/4));
+          //double x = car_x;
+          //double y = car_y;
+          //double d = car_d;
+          //double s = car_s;
+          //double v = car_speed;
+          //double yaw = car_yaw;
+          //Vehicle ego_car = Vehicle(lane, x, y, d, s, v, 0, 0, yaw);
+          
           vector<double> alt_previous_path_x, alt_previous_path_y;
 
           for(int i = 0; i < previous_path_x.size(); i++)
@@ -185,200 +130,97 @@ int main() {
             alt_previous_path_y.push_back(previous_path_y[i]);
           }
 
-          if(status == "keep true")
+
+
+
+          //  transfer the data in sensor_fusion into a vector of vehicles
+
+          vector<vector<double>> alt_sensor_fusion;
+
+          //vector<Vehicle> other_vehicles;
+          
+          
+
+          for(int i = 0; i < sensor_fusion.size(); i++)
           {
-            if(ref_vel < 49.5)
-            {
-              ref_vel += .224;  
-            }
-            traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          }
-          else if((status == "PLCL/R"))
-          {
-            //generate a lane change to the left and check
-            if(lane > 0)
-            {
-              virtual_lane = lane-1;
-              virtual_traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              virtual_x = virtual_traj[0];
-              virtual_y = virtual_traj[1];
-              for(int t = 1; t <= virtual_x.size(); t++)
-              {
-                /*if(t != virtual_x.size())
-                {
-                  virtual_theta = atan2(virtual_y[t]-virtual_y[t-1], virtual_x[t]-virtual_x[t-1]);
-                }
-                */
-                virtual_sd = getFrenet(virtual_x[t-1], virtual_y[t-1], ref_yaw, map_waypoints_x, map_waypoints_y);
-                virtual_s = virtual_sd[0]; 
-                virtual_d = virtual_sd[1];
-                virtual_status = fsm(lane, alt_sensor_fusion, virtual_s, virtual_d, t);
-                if(virtual_status != "keep true")
-                {
-                  danger = true;
-                }
-              }
-              if(!danger)
-              {
-                status = "CL";
-              }
-            }
+             //d = sensor_fusion[i][6];
+             //lane = int(floor(d/4));
+             //s = sensor_fusion[i][5];
+             //vector<double> xy;
+             //xy = getXY(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+             //x = xy[0];
+             //y = xy[1];
+             //double vx = sensor_fusion[i][3];
+             //double vy = sensor_fusion[i][4];
+             //v = sqrt(vx*vx+vy*vy);
 
-            //generate a lane change to the right and check
-            if(lane < 2 && status != "CL")
-            {
-              virtual_lane = lane+1;
-              virtual_traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              virtual_x = virtual_traj[0];
-              virtual_y = virtual_traj[1];
-              for(int t = 1; t <= virtual_x.size(); t++)
-              {
-                /*if(t!=virtual_x.size())
-                {
-                  virtual_theta = atan2(virtual_y[t]-virtual_y[t-1], virtual_x[t]-virtual_x[t-1]);
-                }
-                */
-                virtual_sd = getFrenet(virtual_x[t-1], virtual_y[t-1], ref_yaw, map_waypoints_x, map_waypoints_y);
-                virtual_s = virtual_sd[0]; 
-                virtual_d = virtual_sd[1];
-                virtual_status = fsm(lane, alt_sensor_fusion, virtual_s, virtual_d, t);
-                if(virtual_status != "keep true")
-                {
-                  danger = true;
-                }
-              }
-              if(!danger)
-              {
-                status = "CR";
-              }
-            }
-          }
-            //Change to the left lane
-          if(status == "CL")
-          {
-            lane--;
-            traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          }
-          else if(status == "CR")
-          {
-            lane++;
-            traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          }
-            //generate a lane change to the right and check
-          else if(status == "PLCL/R")
-          {
-            ref_vel -= .244;
-            traj = traj_gen(car_s, ref_vel, alt_previous_path_x, alt_previous_path_y, car_yaw, car_x, car_y, lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          }
-            
-
-/*
-          if(prev_size < 2)
-          {
-            double prev_car_x = car_x - cos(car_yaw);
-            double prev_car_y = car_y - sin(car_yaw);
-
-            ptsx.push_back(prev_car_x);
-            ptsx.push_back(car_x);
-
-            ptsy.push_back(prev_car_y);
-            ptsy.push_back(car_y);
-          }
-          else
-          {
-            ref_x = previous_path_x[prev_size-1];
-            ref_y = previous_path_y[prev_size-1];
-
-            double ref_x_prev = previous_path_x[prev_size-2];
-            double ref_y_prev = previous_path_y[prev_size-2];
-            ref_yaw = atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
-
-            ptsx.push_back(ref_x_prev);
-            ptsx.push_back(ref_x);
-
-            ptsy.push_back(ref_y_prev);
-            ptsy.push_back(ref_y);
-
-          }
-
-          vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          vector<double> next_wp1 = getXY(car_s+60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-
-          ptsx.push_back(next_wp0[0]);
-          ptsx.push_back(next_wp1[0]);
-          ptsx.push_back(next_wp2[0]);
-
-          ptsy.push_back(next_wp0[1]);
-          ptsy.push_back(next_wp1[1]);
-          ptsy.push_back(next_wp2[1]);
-
-          for(int i = 0; i < ptsx.size(); i++)
-          {
-            double shift_x = ptsx[i] - ref_x;
-            double shift_y = ptsy[i] - ref_y;
-
-            ptsx[i] = (shift_x * cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
-            ptsy[i] = (shift_x * sin(0-ref_yaw)+shift_y*cos(0-ref_yaw));
-            //std::cout << ptsx[i] << "\n";
-
+             //Vehicle other_vehicle = Vehicle(lane, x, y, d, s, v, vx, vy, yaw);
+             //other_vehicles.push_back(other_vehicle);
+             alt_sensor_fusion.push_back(sensor_fusion[i]);
           }
 
           
 
-          tk::spline s;
+          vector<string> available_states;
+          double min_cost = 99999999.0;
+          double cost;
+          vector<vector<double>> final_traj;
 
-          s.set_points(ptsx, ptsy);
-
-          for(int i = 0; i < prev_size; i++)
+          if(state.compare("KL") == 0) 
           {
-            next_x_vals.push_back(previous_path_x[i]);
-            next_y_vals.push_back(previous_path_y[i]);
+            available_states.push_back("KL");
+            if(lane > 0){available_states.push_back("LCL");}
+            if(lane < 2){available_states.push_back("LCR");}
+          } else if (state.compare("LCL") == 0) {
+            available_states.push_back("KL");
+          } else if (state.compare("LCR") == 0) {
+            available_states.push_back("KL");
           }
 
-          double target_x = 30.0;
-          double target_y = s(target_x);
-          double target_dist = sqrt((target_x)*(target_x)+(target_y)*(target_y));
+          //available_states = ego_car.successor_states();
+          string final_state;
+          string temp_state;
 
-          double x_add_on = 0;
 
-          double N = (target_dist/(.02*ref_vel/2.24));
 
-          for(int i = 1; i <= 50-prev_size; i++)
+          for(int i = 0; i < available_states.size(); i++)
           {
+            temp_state = available_states[i];
+            std::cout << temp_state;
+            vector<vector<vector<double>>> trajectories = traj_gen(car_x, car_y, car_yaw, end_path_s, 
+                                                                   temp_state, lane, car_speed, 
+                                                                   alt_previous_path_x, 
+                                                                   alt_previous_path_y, map_waypoints_s, 
+                                                                   map_waypoints_x, map_waypoints_y);
+            for(int j = 0; j < trajectories.size(); j++)
+            {
+              vector<vector<double>> trajectory = trajectories[j];
+              cost = calculate_cost(alt_sensor_fusion, trajectory, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              if(cost < min_cost)
+              {
+                min_cost = cost;
+                final_traj = trajectory;
+                final_state = temp_state;
+              }
+            }
             
-            double x_point = x_add_on + (target_x)/N;
-            double y_point = s(x_point);
-
-            x_add_on = x_point;
-
-            double x_ref = x_point;
-            double y_ref = y_point;
-
-            x_point = (x_ref *cos(ref_yaw)-y_ref*sin(ref_yaw));
-            y_point = (x_ref *sin(ref_yaw)+y_ref*cos(ref_yaw));
-
-            x_point += ref_x;
-            y_point += ref_y;
-
-            next_x_vals.push_back(x_point);
-            next_y_vals.push_back(y_point);
-
           }
-          */
-          /*
-          double dist_inc = 0.5;
-          for(int i = 0; i < 50; i++)
-          {
-            double next_s = car_s + (i+1)*dist_inc;
-            double next_d = car_d;
-            std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            next_x_vals.push_back(xy[0]);
-            next_y_vals.push_back(xy[1]);
-          }
-          */
-          next_x_vals = traj[0];
-          next_y_vals = traj[1];
+
+          state = final_state;
+          std::cout << final_state;
+          std::cout << min_cost;
+
+              
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+          vector<double> next_x_vals;
+          vector<double> next_y_vals;
+
+          
+          
+          next_x_vals = final_traj[0];
+          next_y_vals = final_traj[1];
+
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
