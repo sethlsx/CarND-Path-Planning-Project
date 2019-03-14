@@ -11,7 +11,7 @@
 using std::string;
 using std::vector;
 
-int SAFE_RADIUS = 10;
+
 // Initializes Vehicle
 Vehicle::Vehicle(){}
 
@@ -26,13 +26,12 @@ Vehicle::Vehicle(int lane, double x, double y, double d, double s, double v, dou
   this->vy = vy;
   this->v = v;
   this->yaw = yaw;
-  state = "KL";
-  safe_radius = SAFE_RADIUS;
+  //state = "KL";
   //max_acceleration = -1;
 }
 
-Vehicle::~Vehicle() {}
-
+Vehicle::~Vehicle(){}
+/*
 vector<string> Vehicle::successor_states() 
 {
   // Provides the possible next states given the current state for the FSM 
@@ -49,10 +48,12 @@ vector<string> Vehicle::successor_states()
   } else if (state.compare("LCR") == 0) {
     states.push_back("KL");
   }
+
     
   // If state is "LCL" or "LCR", then just return "KL"
   return states;
 }
+*/
 
 
 

@@ -23,19 +23,19 @@ public:
 	double vx;
 	double vy;
 	double yaw;
-	string state;
-	int safe_radius;
+	int prev_lane;
+	//string state;
 	//Constructors
-	Vehicle();
+	Vehicle(){};
 	Vehicle(int lane, double x, double y, double d, double s, double v, double vx, double vy, double yaw); // KL stands for keep lane
 
 	//Destructor
-	virtual ~Vehicle();
+	virtual ~Vehicle(){};
 
 	//Vehicle functions
-	
+	/*
 	vector<string> successor_states();
-
+	*/
 	
 };
 

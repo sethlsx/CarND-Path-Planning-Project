@@ -85,7 +85,7 @@ int NextWaypoint(double x, double y, double theta, const vector<double> &maps_x,
 vector<double> getFrenet(double x, double y, double theta, 
                          const vector<double> &maps_x, 
                          const vector<double> &maps_y) {
-  int next_wp = NextWaypoint(x,y, theta, maps_x,maps_y);
+  int next_wp = NextWaypoint(x,y, theta, maps_x, maps_y);
 
   int prev_wp;
   prev_wp = next_wp-1;

@@ -777,8 +777,6 @@ vector
 -
 helpers.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/helpers.h
-vehicle.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/helpers.h
 math.h
@@ -905,8 +903,6 @@ json.hpp
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
 spline.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
-vehicle.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 map

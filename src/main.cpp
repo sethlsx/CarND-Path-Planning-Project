@@ -11,7 +11,7 @@
 #include <math.h>
 //#include <limits.h>
 #include "cost.h"
-//#include "vehicle.h"
+#include "vehicle.h"
 // #include "fsm.h" //Finite State Machines for Behavior Planning
 #include "trajectory_generate.h" //Hide the trajectory generate code in a head file
 
@@ -20,9 +20,10 @@ using nlohmann::json;
 using std::string;
 using std::vector;
 
+
 int main() {
   uWS::Hub h;
-  std::cout << "DEBUG";
+  //std::cout << "DEBUG";
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
   vector<double> map_waypoints_y;
@@ -110,10 +111,19 @@ int main() {
            */
 
           //create our vehicle
+          Vehicle my_car = Vehicle();
 
+          my_car.lane = int(floor(car_d/4));
+          my_car.x = car_x;
+          my_car.y = car_y;
+          my_car.s = car_s;
+          my_car.d = car_d;
+          my_car.yaw = car_yaw;
+          my_car.v = car_speed;
           
+          //std::cout<<my_car.yaw;
           
-          int lane = int(floor(car_d/4));
+          //int lane = int(floor(car_d/4));
           //double x = car_x;
           //double y = car_y;
           //double d = car_d;
@@ -137,25 +147,25 @@ int main() {
 
           vector<vector<double>> alt_sensor_fusion;
 
-          //vector<Vehicle> other_vehicles;
-          
+          vector<Vehicle> other_vehicles;
+          Vehicle one_vehicle = Vehicle();
           
 
           for(int i = 0; i < sensor_fusion.size(); i++)
           {
-             //d = sensor_fusion[i][6];
-             //lane = int(floor(d/4));
-             //s = sensor_fusion[i][5];
-             //vector<double> xy;
-             //xy = getXY(s, d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-             //x = xy[0];
-             //y = xy[1];
-             //double vx = sensor_fusion[i][3];
-             //double vy = sensor_fusion[i][4];
-             //v = sqrt(vx*vx+vy*vy);
+             one_vehicle.d = sensor_fusion[i][6];
+             one_vehicle.lane = int(floor(one_vehicle.d/4));
+             one_vehicle.s = sensor_fusion[i][5];
+             vector<double> xy;
+             xy = getXY(one_vehicle.s, one_vehicle.d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+             one_vehicle.x = xy[0];
+             one_vehicle.y = xy[1];
+             double vx = sensor_fusion[i][3];
+             double vy = sensor_fusion[i][4];
+             one_vehicle.v = sqrt(vx*vx+vy*vy);
 
              //Vehicle other_vehicle = Vehicle(lane, x, y, d, s, v, vx, vy, yaw);
-             //other_vehicles.push_back(other_vehicle);
+             other_vehicles.push_back(one_vehicle);
              alt_sensor_fusion.push_back(sensor_fusion[i]);
           }
 
@@ -163,8 +173,9 @@ int main() {
 
           vector<string> available_states;
           double min_cost = 99999999.0;
-          double cost;
           vector<vector<double>> final_traj;
+          //string state = my_car.state;
+          int lane = my_car.lane;
 
           if(state.compare("KL") == 0) 
           {
@@ -173,44 +184,104 @@ int main() {
             if(lane < 2){available_states.push_back("LCR");}
           } else if (state.compare("LCL") == 0) {
             available_states.push_back("KL");
+            if(lane > 0){available_states.push_back("LCL");}
           } else if (state.compare("LCR") == 0) {
             available_states.push_back("KL");
+            if(lane < 2){available_states.push_back("LCR");}
           }
 
-          //available_states = ego_car.successor_states();
+
+
+
+          //available_states = my_car.successor_states();
           string final_state;
           string temp_state;
 
-
+          double target_speed;
+          int target_lane;
 
           for(int i = 0; i < available_states.size(); i++)
           {
-            temp_state = available_states[i];
-            std::cout << temp_state;
-            vector<vector<vector<double>>> trajectories = traj_gen(car_x, car_y, car_yaw, end_path_s, 
-                                                                   temp_state, lane, car_speed, 
-                                                                   alt_previous_path_x, 
-                                                                   alt_previous_path_y, map_waypoints_s, 
-                                                                   map_waypoints_x, map_waypoints_y);
-            for(int j = 0; j < trajectories.size(); j++)
+            double ref_speed = MAX_SPEED;
+            if(other_vehicles.size() != 0)
             {
-              vector<vector<double>> trajectory = trajectories[j];
-              cost = calculate_cost(alt_sensor_fusion, trajectory, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              if(cost < min_cost)
+              temp_state = available_states[i];
+              //std::cout << temp_state << ":\n";
+              if(temp_state.compare("KL") == 0)
               {
-                min_cost = cost;
-                final_traj = trajectory;
-                final_state = temp_state;
+                target_lane = my_car.lane;
               }
+              else if(temp_state.compare("LCL") == 0)
+              {
+                target_lane = my_car.lane - 1;
+              }
+              else if(temp_state.compare("LCR") == 0)
+              {
+                target_lane = my_car.lane + 1;
+              }
+
+
+              double min_s = 9999999;
+              double nearest_v;
+              for(int j = 0; j < other_vehicles.size(); j++)
+              {
+                if(other_vehicles[j].lane == target_lane)
+                {
+                  if(other_vehicles[j].s - my_car.s > 0)
+                  {
+                    if(other_vehicles[j].s - my_car.s < min_s)
+                    {
+                      min_s = other_vehicles[j].s - my_car.s;
+                      nearest_v = other_vehicles[j].v;
+                    }
+                  }
+                }
+              }
+              if(min_s < 30){ref_speed = nearest_v;}
             }
             
-          }
+            if(ref_speed == 0){
+              ref_speed = MAX_SPEED;
+            }
+           //std::cout << ref_speed;
+            //std::cout << nearest_v;
+            target_speed = car_speed;
+            while(fabs(target_speed - ref_speed) > 0.2 && fabs(target_speed - car_speed)/0.02 < MAX_ACC)
+            {
+              if(target_speed < ref_speed){target_speed += 0.1;}
+              else if(target_speed > ref_speed){target_speed -= 0.1;}
+              //std::cout << target_speed << "\n";
+              
+              
+              if((target_speed > 0) && (target_speed <= MAX_SPEED))
+            	{
+                //std::cout << " target_speed:" << target_speed << "  ";
+                //std::cout<<"DEBUG!";
+            	  vector<vector<double>> trajectory = traj_gen(car_x, car_y, car_yaw, temp_state, target_speed,
+                                                             lane, car_s,
+                                                             alt_previous_path_x, 
+                                                             alt_previous_path_y, map_waypoints_s, 
+                                                             map_waypoints_x, map_waypoints_y);
+                
+                double cost = calculate_cost(my_car, other_vehicles, trajectory, map_waypoints_x, map_waypoints_y);
+            	  //std::cout << "cost:" << cost << "\n";
+                if(cost <= min_cost)
+	              {
+	           	  	min_cost = cost;
+	              	final_traj = trajectory;
+	              	final_state = temp_state;
+	              }
+            	}
+            	
+            }
+            
+           }
 
           state = final_state;
-          std::cout << final_state;
-          std::cout << min_cost;
+          std::cout << "final_sate:" << final_state << "\n";
+          std::cout << "min_cost:" << min_cost << "\n";
 
-              
+          my_car.prev_lane = my_car.lane;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
           vector<double> next_x_vals;
