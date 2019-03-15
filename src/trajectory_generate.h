@@ -17,7 +17,7 @@ using nlohmann::json;
 using std::string;
 using std::vector;
 
-vector<vector<double>> traj_gen(double &car_x, double &car_y, double &car_yaw, string &state, double &ref_vel, int &lane, double &car_s,
+vector<vector<double>> traj_gen(double &end_path_d, double &car_x, double &car_y, double &car_yaw, string &state, double &ref_vel, double &car_s,
                                         vector<double> &previous_path_x, vector<double> &previous_path_y, 
                                         vector<double> &map_waypoints_s, vector<double> &map_waypoints_x, 
                                         vector<double> &map_waypoints_y)
@@ -38,7 +38,9 @@ vector<vector<double>> traj_gen(double &car_x, double &car_y, double &car_yaw, s
 
     //if(v == 0 && i == 0){break;}
 
-  
+  int lane = int(floor(end_path_d/4));
+  if(lane < 0){lane = 0;}
+  else if(lane > 2){lane = 2;}
   int target_lane;
 
 
@@ -86,7 +88,7 @@ vector<vector<double>> traj_gen(double &car_x, double &car_y, double &car_yaw, s
 
   
 
-  if(state.compare("KL") == 0)
+  if(state.compare("KL") == 0 || state.compare("PLCL") == 0 || state.compare("PLCR") == 0)
   {
     target_lane = lane;
   }
@@ -99,7 +101,7 @@ vector<vector<double>> traj_gen(double &car_x, double &car_y, double &car_yaw, s
     target_lane = lane + 1;
   }
 
-  
+  //double ref_len = ref_vel*10;
 
   vector<double> next_wp0 = getXY(car_s+30, (2+4*target_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
   vector<double> next_wp1 = getXY(car_s+60, (2+4*target_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);

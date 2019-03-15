@@ -23,7 +23,7 @@ public:
 	double vx;
 	double vy;
 	double yaw;
-	int prev_lane;
+	//int prev_lane;
 	//string state;
 	//Constructors
 	Vehicle(){};

@@ -12,11 +12,26 @@ using std::vector;
 
 
 #define MAX_SPEED 49.5
-#define SAFE_RADIUS 5.0
-#define COLLISION_RADIUS 10.0
-#define FOLLOW_DIST 30.0
+#define SAFE_RADIUS 2.0
+#define COLLISION_RADIUS 1.0
+#define FOLLOW_DIST 50.0
 #define MAX_ACC 10.0
-#define MAX_JERK 5.0
+#define MAX_JERK 10.0
+
+double get_lane_vel(vector<Vehicle> &other_cars, int &lane)
+{
+  double lane_vel = -1.0;
+  for(int i = 0; i < other_cars.size(); i++)
+  {
+    if(other_cars[i].lane == lane)
+    {
+      if(other_cars[i].v > lane_vel){lane_vel = other_cars[i].v;}
+    }
+  }
+
+
+  return lane_vel;
+}
 
 vector<vector<double>> xy_to_sd(Vehicle &my_car, vector<vector<double>> &trajectory, vector<double> &map_waypoints_x, vector<double> &map_waypoints_y)
 {
@@ -60,7 +75,7 @@ double collision_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vecto
     double t = 0.02*(i+1);
     for(int j = 0; j < other_cars.size(); j++)
     {
-      double dist = distance(other_cars[j].x, other_cars[j].y, traj_x[i], traj_y[i]);
+      double dist = distance(other_cars[j].x + other_cars[j].vx*t, other_cars[j].y+other_cars[j].vy*t, traj_x[i], traj_y[i]);
       if(dist < COLLISION_RADIUS){return 1;}
       
     }
@@ -96,7 +111,54 @@ double too_close_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vecto
       }
     }
   }
-  if(min_dist > 120)
+  if(min_dist > 2*SAFE_RADIUS)
+  {
+    cost = 0;
+  }
+  else if(min_dist <= SAFE_RADIUS)
+  {
+    cost = 1;
+  }
+  else
+  {
+    cost = 2 * SAFE_RADIUS/min_dist - 1;
+  }
+  return cost;
+}
+
+double follow_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vector<double>> &traj_sd)
+{
+  vector<double> traj_s = traj_sd[0];
+  vector<double> traj_d = traj_sd[1];
+
+  double min_dist = 120.0;
+  double t = traj_sd.size()*0.02;
+  for(int i = 0; i < other_cars.size(); i++)
+  {
+    if(other_cars[i].lane == int(floor(traj_d[traj_d.size()-1]/4)))
+    {
+      if(other_cars[i].s - my_car.s>0)
+      {
+        if(other_cars[i].s + other_cars[i].v*t- traj_s[traj_s.size()-1] > 0)
+        {
+          if(other_cars[i].s + other_cars[i].v*t- traj_s[traj_s.size()-1] < min_dist)
+          {
+            min_dist = other_cars[i].s - traj_s[traj_s.size()-1];
+          }
+        }
+        else
+        {
+          return 1; 
+        }
+        
+      }
+      
+    }
+  }
+
+  double cost;
+
+  if(min_dist >= 120)
   {
     cost = 0;
   }
@@ -106,28 +168,11 @@ double too_close_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vecto
   }
   else
   {
-    double x = 2*SAFE_RADIUS/min_dist;
-    cost = 2.0/(1+exp(-x))-1.0;
+    double x = 120.0/min_dist-1;
+    cost = 2/(1+exp(-x))-1;
   }
-  return cost;
-}
 
-double follow_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vector<double>> &traj_sd)
-{
-  vector<double> traj_s = traj_sd[0];
-  vector<double> traj_d = traj_sd[1];
-  for(int i = 0; i < other_cars.size(); i++)
-  {
-    if(other_cars[i].lane == int(floor(traj_d[traj_d.size()-1]/4)))
-    {
-      if(other_cars[i].s - traj_s[traj_s.size()-1]>0)
-      {
-        if(other_cars[i].s - traj_s[traj_s.size()-1]<=FOLLOW_DIST){return 1;}
-      }
-      
-    }
-  }
-  return 0;
+  return cost;
 
 }
 
@@ -200,44 +245,44 @@ vector<double> traj_deriv_2(vector<double> &traj_vel)
 }
 */
 
-double max_acc_cost(vector<vector<double>> &trajectory)
+double max_acc_cost(vector<vector<double>> &traj_sd)
 {
-  vector<double> traj_x = trajectory[0];
-  vector<double> traj_y = trajectory[1];
+  vector<double> traj_s = traj_sd[0];
+  vector<double> traj_d = traj_sd[1];
 
-  vector<double> traj_vx = traj_deriv(traj_x);
-  vector<double> traj_vy = traj_deriv(traj_y);
+  vector<double> traj_vs = traj_deriv(traj_s);
+  vector<double> traj_vd = traj_deriv(traj_d);
 
-  vector<double> traj_ax = traj_deriv(traj_vx);
-  vector<double> traj_ay = traj_deriv(traj_vy);
+  vector<double> traj_as = traj_deriv(traj_vs);
+  vector<double> traj_ad = traj_deriv(traj_vd);
 
-  for(int i = 0; i < traj_ax.size(); i++)
+  for(int i = 0; i < traj_as.size(); i++)
   {
-    double acc = sqrt(traj_ax[i]*traj_ax[i]+traj_ay[i]*traj_ay[i]);
-    if(acc > MAX_ACC){return 1;}
+    if(traj_as[i] > 0.9*MAX_ACC){return 1;}
+    if(traj_ad[i] > 0.3*MAX_ACC){return 1;}
   }
   return 0;
 
 }
 
-double max_jerk_cost(vector<vector<double>> &trajectory)
+double max_jerk_cost(vector<vector<double>> &traj_sd)
 {
-  vector<double> traj_x = trajectory[0];
-  vector<double> traj_y = trajectory[1];
+  vector<double> traj_s = traj_sd[0];
+  vector<double> traj_d = traj_sd[1];
 
-  vector<double> traj_vx = traj_deriv(traj_x);
-  vector<double> traj_vy = traj_deriv(traj_y);
+  vector<double> traj_vs = traj_deriv(traj_s);
+  vector<double> traj_vd = traj_deriv(traj_d);
 
-  vector<double> traj_ax = traj_deriv(traj_vx);
-  vector<double> traj_ay = traj_deriv(traj_vy);
+  vector<double> traj_as = traj_deriv(traj_vs);
+  vector<double> traj_ad = traj_deriv(traj_vd);
 
-  vector<double> traj_jx = traj_deriv(traj_ax);
-  vector<double> traj_jy = traj_deriv(traj_ay);
+  vector<double> traj_js = traj_deriv(traj_as);
+  vector<double> traj_jd = traj_deriv(traj_ad);
 
-  for(int i = 0; i < traj_jx.size();i++)
+  for(int i = 0; i < traj_js.size();i++)
   {
-    double jerk = sqrt(traj_jx[i]*traj_jx[i]+traj_jy[i]*traj_jy[i]);
-    if(jerk > MAX_JERK){return 1;}
+    if(traj_js[i] > MAX_JERK){return 1;}
+    if(traj_jd[i] > 0.3*MAX_JERK){return 1;}
   }
   return 0;
 }
@@ -251,7 +296,7 @@ double stay_in_lane_cost(Vehicle &my_car, vector<vector<double>> &traj_sd)
   for(int i = 0; i <traj_d.size(); i++)
   {
     
-    if(traj_d[i] != my_car.lane*4+2){return 1;}
+    if(fabs(traj_d[i] - my_car.lane*4-2)>1){return 1;}
   }
   
   return 0;
@@ -280,6 +325,38 @@ double smooth_traj_cost(vector<vector<double>> &traj_sd)
 }
 */
 
+double front_collison_time_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vector<double>> trajectory)
+{
+  double cost = 0;
+  int col_idx;
+  if(collision_cost(my_car, other_cars, trajectory))
+  {
+    vector<double> traj_x = trajectory[0];
+    vector<double> traj_y = trajectory[1];
+  //vector<double> traj_s = traj_sd[0];
+  //vector<double> traj_d = traj_sd[1];
+
+    for(int i = 0; i < traj_x.size(); i++)
+    {
+      double t = 0.02*(i+1);
+      for(int j = 0; j < other_cars.size(); j++)
+      {
+        double dist = distance(other_cars[j].x + other_cars[j].vx*t, other_cars[j].y+other_cars[j].vy*t, traj_x[i], traj_y[i]);
+        if(dist < COLLISION_RADIUS){col_idx = j;}
+      
+      }
+      
+    
+    }
+    if(other_cars[col_idx].s > my_car.s)
+    {
+      cost = 1-ave_vel_cost(trajectory);  
+    }
+    
+  }
+  return cost;
+}
+
 
 double calculate_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vector<double>> &trajectory, 
                       vector<double> &map_waypoints_x, vector<double> &map_waypoints_y) 
@@ -289,25 +366,28 @@ double calculate_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vecto
 
 
   double col = collision_cost(my_car, other_cars, trajectory);
-  double tc = too_close_cost(my_car, other_cars, trajectory);
-  double fo = follow_cost(my_car, other_cars, traj_sd);
+  //double tc = too_close_cost(my_car, other_cars, trajectory);
+  //double fo = follow_cost(my_car, other_cars, traj_sd);
   double avv = ave_vel_cost(trajectory);
-  double mv = max_vel_cost(trajectory);
-  double macc = max_acc_cost(trajectory);
-  double mjerk = max_jerk_cost(trajectory);
-  double slc = stay_in_lane_cost(my_car, traj_sd);
+  //double mv = max_vel_cost(trajectory);
+  double macc = max_acc_cost(traj_sd);
+  double mjerk = max_jerk_cost(traj_sd);
+  //double slc = stay_in_lane_cost(my_car, traj_sd);
   //double stc = smooth_traj_cost(traj_sd);
+  double ctc = front_collison_time_cost(my_car, other_cars, trajectory);
 
   double cost;
 
-  cost = 9999 * col 
-         + 10*tc 
-         + 100*fo 
-         + 1000 * avv 
-         + 9999 * mv 
-         + 100 * macc 
-         + 100 * mjerk 
-         + 1000 * slc;
+  cost = 99999 * col 
+         //+ 10 * tc 
+         //+ 1000 * fo 
+         + 500 * avv 
+         //+ 99999 * mv 
+         + 99999 * macc 
+         + 99999 * mjerk 
+         //+ 500 * slc
+         + 10000 * ctc
+         ;
   //cost = col + tc + fo + avv + mv + macc + mjerk;
 
   return cost;
