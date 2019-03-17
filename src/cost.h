@@ -226,8 +226,8 @@ vector<double> traj_deriv(vector<double> &traj_x)
 
   for(int i = 0; i < traj_x.size()-1; i++)
   {
-    double dist = fabs(traj_x[i] - traj_x[i+1]);
-    double vx = dist/0.02;
+    double dist = traj_x[i+1] - traj_x[i];
+    double vx = dist/0.2;
     traj_vx.push_back(vx);
   }
   return traj_vx;
@@ -258,8 +258,8 @@ double max_acc_cost(vector<vector<double>> &traj_sd)
 
   for(int i = 0; i < traj_as.size(); i++)
   {
-    if(traj_as[i] > 0.9*MAX_ACC){return 1;}
-    if(traj_ad[i] > 0.3*MAX_ACC){return 1;}
+    if(fabs(traj_as[i]) > MAX_ACC/2.24){return 1;}
+    if(fabs(traj_ad[i]) > MAX_ACC/2.24){return 1;}
   }
   return 0;
 
@@ -281,8 +281,8 @@ double max_jerk_cost(vector<vector<double>> &traj_sd)
 
   for(int i = 0; i < traj_js.size();i++)
   {
-    if(traj_js[i] > MAX_JERK){return 1;}
-    if(traj_jd[i] > 0.3*MAX_JERK){return 1;}
+    if(fabs(traj_js[i]) > MAX_JERK/2.24){return 1;}
+    if(fabs(traj_jd[i]) > MAX_JERK/2.24){return 1;}
   }
   return 0;
 }
@@ -357,6 +357,26 @@ double front_collison_time_cost(Vehicle &my_car, vector<Vehicle> &other_cars, ve
   return cost;
 }
 
+double efficiency_cost(vector<vector<double>> &traj_sd)
+{
+  vector<double> traj_s = traj_sd[0];
+  vector<double> traj_d = traj_sd[1];
+  double t = traj_s.size()*0.02;
+  double vs = (traj_s[traj_s.size()-1] - traj_s[0])/(t*2.24);
+
+  double cost;
+
+  if(vs <= MAX_SPEED)
+  {
+    cost = (MAX_SPEED - vs)/MAX_SPEED;
+  }
+  else
+  {
+    cost = 1;
+  }
+  return cost;
+}
+
 
 double calculate_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vector<double>> &trajectory, 
                       vector<double> &map_waypoints_x, vector<double> &map_waypoints_y) 
@@ -372,21 +392,23 @@ double calculate_cost(Vehicle &my_car, vector<Vehicle> &other_cars, vector<vecto
   //double mv = max_vel_cost(trajectory);
   double macc = max_acc_cost(traj_sd);
   double mjerk = max_jerk_cost(traj_sd);
-  //double slc = stay_in_lane_cost(my_car, traj_sd);
+  double slc = stay_in_lane_cost(my_car, traj_sd);
   //double stc = smooth_traj_cost(traj_sd);
   double ctc = front_collison_time_cost(my_car, other_cars, trajectory);
+  double ec = efficiency_cost(traj_sd);
 
   double cost;
 
   cost = 99999 * col 
          //+ 10 * tc 
          //+ 1000 * fo 
-         + 500 * avv 
+         //+ 500 * avv 
          //+ 99999 * mv 
          + 99999 * macc 
          + 99999 * mjerk 
-         //+ 500 * slc
+         + 100 * slc
          + 10000 * ctc
+         + 500 * ec
          ;
   //cost = col + tc + fo + avv + mv + macc + mjerk;
 

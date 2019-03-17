@@ -787,6 +787,8 @@ string
 -
 vector
 -
+vehicle.h
+/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
 algorithm
@@ -871,8 +873,6 @@ cost.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/cost.h
 vehicle.h
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
-trajectory_generate.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/trajectory_generate.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
 cstdio
@@ -883,30 +883,6 @@ vector
 -
 algorithm
 -
-
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/trajectory_generate.h
-uWS/uWS.h
--
-fstream
--
-iostream
--
-string
--
-vector
--
-Eigen-3.3/Eigen/Core
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/Core
-Eigen-3.3/Eigen/QR
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/QR
-helpers.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/helpers.h
-json.hpp
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/json.hpp
-spline.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/spline.h
-vehicle.h
-/Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 
 /Users/liushengxi/code/CarND-Path-Planning-Project/src/vehicle.h
 map

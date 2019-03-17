@@ -164,7 +164,6 @@ CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/helpers.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/json.hpp
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/spline.h
-CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/trajectory_generate.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: ../src/vehicle.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: /usr/local/include/uWS/Extensions.h
 CMakeFiles/path_planning.dir/src/main.cpp.o: /usr/local/include/uWS/Group.h

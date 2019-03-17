@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string>
 #include <vector>
+#include "vehicle.h"
 
 // for convenience
 using std::string;
@@ -153,5 +154,71 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s,
 
   return {x,y};
 }
+
+bool target_lane_empty(int &target_lane, Vehicle &my_car, vector<Vehicle> &other_cars)
+{
+  bool is_empty = true;
+  double rear_safe_dist, front_safe_dist;
+
+  if(my_car.v < 10)
+  {
+    rear_safe_dist = 90;
+    front_safe_dist = 5;
+  }
+  else if(my_car.v < 30)
+  {
+    rear_safe_dist = 30;
+    front_safe_dist = 20;
+  }
+  else if(my_car.v < 40)
+  {
+    rear_safe_dist = 10;
+    front_safe_dist = 30;
+  }
+  else
+  {
+    rear_safe_dist = 5;
+    front_safe_dist = 40;
+  }
+
+  for(int i = 0; i < other_cars.size(); i++)
+  {
+    if(other_cars[i].lane == target_lane)
+    {
+      if(other_cars[i].s - my_car.s > 0 && other_cars[i].s - my_car.s < front_safe_dist)
+      {
+        is_empty = false;
+      }
+      else if(other_cars[i].s - my_car.s < 0 && my_car.s - other_cars[i].s < rear_safe_dist)
+      {
+        is_empty = false;
+      }
+    }
+  }
+  return is_empty;
+
+}
+
+Vehicle get_lane_leading_car(int &target_lane, Vehicle &my_car, vector<Vehicle> &other_cars)
+{
+  Vehicle leading_car;
+  leading_car.v = -1;
+  double min_dist = 999999.0;
+  for(int i = 0; i < other_cars.size(); i++)
+  {
+    if(other_cars[i].lane == target_lane)
+    {
+      double dist = other_cars[i].s - my_car.s;
+      if(dist > 0 && dist < min_dist)
+      {
+        min_dist = dist;
+        leading_car = other_cars[i];
+      }
+    }
+  }
+  return leading_car;
+
+}
+
 
 #endif  // HELPERS_H
