@@ -10,3 +10,5 @@ Second, for each states, I find the leading car in the target lane. For example,
 Then I use several cost functions to determine which trajectory has the lowest cost. The mainly concerns are if there would be collision, if it breaks the max acceleration and jerk, if the car stays in the lane and if it is quick enough.
 
 After this, the best trajectory is generated and pass on to the simulator and the programme goes into the next circle.
+
+I uploaded a video of the code running here:https://youtu.be/19vk-75W4Ko
